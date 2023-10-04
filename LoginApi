@@ -1,0 +1,36 @@
+@RestResource(urlMapping='/login/*')
+global class LoginApi {
+     @HttpPost
+    global static void login(String mobileNumber, String password) {
+        Map<String, Object> response = new Map<String, Object>();
+        
+        try {
+             User_Manager__c newUserManager = [SELECT Id, Mobile_No__c,Email__c, Name ,Password__c FROM User_Manager__c WHERE Mobile_No__c = :mobileNumber ]; 
+                if (newUserManager.Password__c == password) 
+                    {
+                     response.put('Status', 'Success');
+                     response.put('AccountId', newUserManager.Id);
+                     response.put('name', newUserManager.Name);
+                     response.put('email', newUserManager.Email__c);
+                     response.put('password', newUserManager.Password__c);
+                     response.put('Phone Number', newUserManager.Mobile_No__c);
+                     response.put('message', 'Successfully login'); 
+                    }
+               else {     
+                     response.put('Status', 'failed');
+                     response.put('message', 'Incorrect password'); 
+                    }
+            
+        } catch (Exception ex) {
+            response.put('Status', 'Failed');
+            response.put('message', 'Incorrect mobile number'); 
+        }
+        
+        String jsonResponse = JSON.serialize(response);
+        
+        // Return the JSON response
+        RestContext.response.addHeader('Content-Type', 'application/json');
+        RestContext.response.responseBody = Blob.valueOf(jsonResponse);
+    }
+
+}
