@@ -1,0 +1,61 @@
+@RestResource(urlmapping='/createUserManager/*')
+Global class SignupApi 
+   {   
+    @HttpPost
+    global static void createSignupRequest(String mobileNumber) {
+        Map<String, Object> response = new Map<String, Object>();
+        
+        try {
+             // Now, obtain the new access token using the refresh token
+          //  String newAccessToken = RefreshTokenGet.getAccessToken();
+          
+            String soqlQuery = 'SELECT count(Id) FROM User_Manager__c WHERE Mobile_No__c = \'' + mobileNumber + '\'';
+            Integer recordCount = 0;
+            
+            List<AggregateResult> results = Database.query(soqlQuery);
+            if (!results.isEmpty()) {
+               recordCount = Integer.valueOf(results[0].get('expr0'));
+            }
+                    
+            if(recordCount==0 )
+            {
+                User_Manager__c signupRequest = new User_Manager__c();
+                signupRequest.Mobile_No__c = mobileNumber;
+                insert signupRequest;
+                response.put('Status', 'Success');
+                response.put('AccountId', signupRequest.Id);
+                response.put('Phone Number', signupRequest.Mobile_No__c);
+                response.put('message', 'otp sent successfully');
+                User_Manager__c newotp = [SELECT Id ,OTP__c FROM User_Manager__c WHERE Mobile_No__c = :mobileNumber];
+                response.put('OTP', newotp.OTP__c); 
+            //   response.put('access_token', newAccessToken); // Include the new access token in the response
+            }      
+            
+       	   else{
+             User_Manager__c newotp = [SELECT Id ,OTP__c ,Mobile_No__c FROM User_Manager__c WHERE Mobile_No__c = :mobileNumber];
+            //  response.put('OTP', newotp.OTP__c); 
+            // response.put('AccountId', newotp.Id);
+             response.put('Phone Number', newotp.Mobile_No__c);
+             response.put('message', 'Mobile No. already exist !!'); 
+             response.put('Status', 'Failed');
+            }
+            
+            
+        } catch (Exception ex) {
+            response.put('Status', 'Failed');
+            response.put('message', ex.getMessage());
+            response.put('test', 'test');
+        }
+        
+       String jsonResponse = JSON.serialize(response);
+        
+        // Return the JSON response
+        RestContext.response.addHeader('Content-Type', 'application/json');
+        RestContext.response.responseBody = Blob.valueOf(jsonResponse);
+        
+    }
+
+    
+
+     
+}
