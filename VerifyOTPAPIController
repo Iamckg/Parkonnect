@@ -1,0 +1,47 @@
+@RestResource(urlmapping='/verifyOtp/*')
+global class VerifyOTPAPIController {
+    @HttpPost
+    global static void verifyOTP(String mobileNumber, String otp) {
+        Map<String, Object> response = new Map<String, Object>();
+
+        try {
+            // Perform the OTP verification logic here
+            List<User_Manager__c> signupRequests = [SELECT Id, Mobile_No__c, OTP__c,IsVerify__c FROM User_Manager__c WHERE Mobile_No__c = :mobileNumber LIMIT 1];
+       
+            if (signupRequests.isEmpty()) {
+                response.put('Status', 'Failed');
+                response.put('message', 'Signup request not found for the given mobile number.');
+            } else {
+                // Get the first (and only) User_Manager__c record from the list
+                User_Manager__c signupRequest = signupRequests[0];
+
+                // Check if the provided OTP matches the stored OTP
+                Decimal storedOTP = signupRequest.OTP__c;
+                Decimal providedOTP = Decimal.valueOf(otp);
+
+                if (storedOTP == providedOTP) {
+                    
+                    response.put('Status', 'Success');
+                    response.put('Phone Number', signupRequest.Mobile_No__c);   
+                    response.put('message', 'OTP verification successful.');
+                    User_Manager__c record = [SELECT Id,IsVerify__c FROM User_Manager__c WHERE Mobile_No__c = :mobileNumber];
+                    record.IsVerify__c=true;
+                    update record;
+                    response.put('Type', record.IsVerify__c);
+                } else {
+                    response.put('Status', 'Failed');
+                    response.put('message', 'Invalid OTP.');
+                }
+            }
+        } catch (Exception ex) {
+            response.put('Status', 'Failed');
+            response.put('message', ex.getMessage());
+        }
+
+        String jsonResponse = JSON.serialize(response);
+
+        // Return the JSON response
+        RestContext.response.addHeader('Content-Type', 'application/json');
+        RestContext.response.responseBody = Blob.valueOf(jsonResponse);
+    }
+}
